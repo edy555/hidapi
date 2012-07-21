@@ -1,0 +1,52 @@
+How to use hidapi ruby binding 
+
+
+== Install
+
+mac
+
+ ruby is installed on MacOS X (1.8.7-p174 on 10.6.4)
+
+ $ make -C ../mac hid.o
+ $ ruby extconf.rb
+ $ make
+ $ sudo make site-install
+
+linux
+
+ install ruby (eg. ubuntu)
+
+ $ sudo apt-get ruby-dev
+
+ $ make -C ../linux hid-libusb.o
+ $ ruby extconf.rb
+ $ make
+ $ sudo make site-install
+
+windows
+
+ install ruby binaries for mswin32 (eg. ruby-1.8.7-p330-i386-mswin32.zip)
+
+ edit ruby-1.8.7-p330-i386-mswin32/lib/ruby/1.8/i386-mswin32/rbconfig.rb
+ line 26 from
+  CONFIG["CFLAGS"] = "-MD -Zi  -O2b2xg- -G6"
+ as follows
+  CONFIG["CFLAGS"] = "-MT -Zi  -O2b2x"
+
+ edit ruby-1.8.7-p330-i386-mswin32/lib/ruby/1.8/i386-mswin32/config.h
+ line 1 from
+   #if _MSC_VER != 1200
+ as follows
+   #if _MSC_VER < 1200
+
+ open "Visual Studio 2008 Command Prompt"
+
+ > cd hidapi/windows
+ > vcbuild hidapi.vcproj Release
+ 
+ > cd hidapi/ruby
+ > ruby extconf.rb
+ > nmake
+ > nmake site-install
+ 
+[EOF]
