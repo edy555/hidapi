@@ -1,18 +1,25 @@
 How to use hidapi ruby binding 
 
-
 == Install
 
-mac
+Mac
 
- ruby is installed on MacOS X (1.8.7-p174 on 10.6.4)
+ Step1, build hidapi.
+ autoconf(>=2.65) and libtool(>=1.11) are required.
 
- $ make -C ../mac hid.o
- $ ruby extconf.rb
+ $ cd hidapi-xx.xx
+ $ ./bootstrap
+ $ ./configure
+ $ make
+
+ Step2, build ruby bindings of hidapi and install .
+
+ $ cd ruby
+ $ RC_ARCHS="x86_64" ruby extconf.rb
  $ make
  $ sudo make site-install
 
-linux
+Linux
 
  install ruby (eg. ubuntu)
 
@@ -23,7 +30,7 @@ linux
  $ make
  $ sudo make site-install
 
-windows
+Windows
 
  install ruby binaries for mswin32 (eg. ruby-1.8.7-p330-i386-mswin32.zip)
 

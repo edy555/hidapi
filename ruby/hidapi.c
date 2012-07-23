@@ -124,10 +124,24 @@ static struct hid_device_info *get_hid_deviceinfo(VALUE v)
 
 /* HID#enumerate */
 static VALUE
-rhid_enumerate(VALUE cHID, VALUE vendor_id, VALUE product_id)
+//rhid_enumerate(VALUE cHID, VALUE vendor_id, VALUE product_id)
+rhid_enumerate(int argc, VALUE *argv)
 {
-  int vid = NUM2INT(vendor_id);
-  int pid = NUM2INT(product_id);
+  VALUE vendor_id = Qnil;
+  VALUE product_id = Qnil;
+  int vid = 0;
+  int pid = 0;
+  int n;
+
+  n = rb_scan_args(argc, argv, "02", &vendor_id, &product_id);
+  if (n > 3) {
+    rb_raise(rb_eArgError,"wrong number of arguments");
+  }
+  if (vendor_id != Qnil)
+    vid = NUM2INT(vendor_id);
+  if (product_id != Qnil)
+    pid = NUM2INT(product_id);
+
   struct hid_device_info *h;
   
   h = hid_enumerate(vid, pid);
@@ -144,15 +158,63 @@ rhid_free_enumeration(VALUE cHID, VALUE v)
 {
   struct hid_device_info *h = check_hid_deviceinfo(v);
   hid_free_enumeration(h);
+  DATA_PTR(v) = NULL;
   return Qnil;
 }
 
-/* HID::Device#get_serial_number_string */
+/* HID::DeviceInfo#next */
+static VALUE
+rhid_deviceinfo_next(VALUE v)
+{
+  struct hid_device_info *di = get_hid_deviceinfo(v);
+#if 0
+  if (di->next)
+    return rhid_deviceinfo_new(di->next);
+  else
+#endif
+    return Qnil;
+}
+
+/* HID::DeviceInfo#path */
+static VALUE
+rhid_deviceinfo_path(VALUE v)
+{
+  struct hid_device_info *di = get_hid_deviceinfo(v);
+  return rb_str_new2(di->path);
+}
+
+/* HID::DeviceInfo#vendor_id */
 static VALUE
 rhid_deviceinfo_vendor_id(VALUE v)
 {
   struct hid_device_info *di = get_hid_deviceinfo(v);
   return INT2NUM(di->vendor_id);
+}
+
+/* HID::DeviceInfo#product_id */
+static VALUE
+rhid_deviceinfo_product_id(VALUE v)
+{
+  struct hid_device_info *di = get_hid_deviceinfo(v);
+  return INT2NUM(di->product_id);
+}
+
+/* HID::DeviceInfo#serial_number */
+static VALUE
+rhid_deviceinfo_serial_number(VALUE v)
+{
+  struct hid_device_info *di = get_hid_deviceinfo(v);
+  char mbs[MAX_STR];
+  wcstombs(mbs, di->serial_number, MAX_STR);
+  return rb_str_new2(mbs);
+}
+
+/* HID::DeviceInfo#release_number */
+static VALUE
+rhid_deviceinfo_release_number(VALUE v)
+{
+  struct hid_device_info *di = get_hid_deviceinfo(v);
+  return INT2NUM(di->release_number);
 }
 
 /* HID::DeviceInfo#manufacturer_string */
@@ -165,13 +227,41 @@ rhid_deviceinfo_manufacturer_string(VALUE v)
   return rb_str_new2(mbs);
 }
 
-/* HID::DeviceInfo#path */
+/* HID::DeviceInfo#product_string */
 static VALUE
-rhid_deviceinfo_path(VALUE v)
+rhid_deviceinfo_product_string(VALUE v)
 {
   struct hid_device_info *di = get_hid_deviceinfo(v);
-  return rb_str_new2(di->path);
+  char mbs[MAX_STR];
+  wcstombs(mbs, di->product_string, MAX_STR);
+  return rb_str_new2(mbs);
 }
+
+/* HID::DeviceInfo#usage_page */
+static VALUE
+rhid_deviceinfo_usage_page(VALUE v)
+{
+  struct hid_device_info *di = get_hid_deviceinfo(v);
+  return INT2NUM(di->usage_page);
+}
+
+/* HID::DeviceInfo#usage */
+static VALUE
+rhid_deviceinfo_usage(VALUE v)
+{
+  struct hid_device_info *di = get_hid_deviceinfo(v);
+  return INT2NUM(di->usage);
+}
+
+/* HID::DeviceInfo#interface_number */
+static VALUE
+rhid_deviceinfo_interface_number(VALUE v)
+{
+  struct hid_device_info *di = get_hid_deviceinfo(v);
+  return INT2NUM(di->interface_number);
+}
+
+
 
 static VALUE rb_cHID_Device;
 
@@ -221,19 +311,31 @@ rhid_device_close(VALUE v)
 {
   hid_device *p = get_hid_device(v);
   hid_close(p);
+  DATA_PTR(v) = NULL;
   return Qnil;
 }
 
 /* HID#open */
 static VALUE
-rhid_open(VALUE cHID, VALUE vendor_id, VALUE product_id, VALUE vserial_number)
+//rhid_open(VALUE cHID, VALUE vendor_id, VALUE product_id, VALUE vserial_number)
+rhid_open(int argc, VALUE *argv)
 {
-  int vid = NUM2INT(vendor_id);
-  int pid = NUM2INT(product_id);
+  int vid;
+  int pid;
   wchar_t *serial_number = NULL;
   hid_device *h;
-  
-  if (vserial_number != Qnil) {
+  VALUE vendor_id, product_id;
+  VALUE vserial_number = Qnil;
+  int n;
+
+  n = rb_scan_args(argc, argv, "21", &vendor_id, &product_id, &vserial_number);
+  if (n < 2 || n > 3) {
+    rb_raise(rb_eArgError,"wrong number of arguments");
+  }
+  vid = NUM2INT(vendor_id);
+  pid = NUM2INT(product_id);
+
+  if (n == 3) {
     size_t len;
     wchar_t *ws;
     StringValue(vserial_number);
@@ -416,14 +518,22 @@ Init_hidapi()
   //rhid_gc_root = Data_Wrap_Struct(0, rhid_gc_mark, 0, 0);
   //rb_global_variable(&rhid_gc_root);
 
-  rb_define_module_function(rb_cHID, "enumerate", rhid_enumerate, 2);
+  rb_define_module_function(rb_cHID, "enumerate", rhid_enumerate, -1);
   rb_define_module_function(rb_cHID, "free_enumeration", rhid_free_enumeration, 1);
-  rb_define_method(rb_cHID_DeviceInfo, "vendor_id", rhid_deviceinfo_vendor_id, 0);
-  rb_define_method(rb_cHID_DeviceInfo, "manufacturer_string", rhid_deviceinfo_manufacturer_string, 0);
+  rb_define_method(rb_cHID_DeviceInfo, "next", rhid_deviceinfo_next, 0);
   rb_define_method(rb_cHID_DeviceInfo, "path", rhid_deviceinfo_path, 0);
 
+  rb_define_method(rb_cHID_DeviceInfo, "vendor_id", rhid_deviceinfo_vendor_id, 0);
+  rb_define_method(rb_cHID_DeviceInfo, "product_id", rhid_deviceinfo_product_id, 0);
+  rb_define_method(rb_cHID_DeviceInfo, "serial_number", rhid_deviceinfo_serial_number, 0);
+  rb_define_method(rb_cHID_DeviceInfo, "release_number", rhid_deviceinfo_release_number, 0);
+  rb_define_method(rb_cHID_DeviceInfo, "manufacturer_string", rhid_deviceinfo_manufacturer_string, 0);
+  rb_define_method(rb_cHID_DeviceInfo, "product_string", rhid_deviceinfo_product_string, 0);
+  rb_define_method(rb_cHID_DeviceInfo, "usage_page", rhid_deviceinfo_usage_page, 0);
+  rb_define_method(rb_cHID_DeviceInfo, "usage", rhid_deviceinfo_usage, 0);
+  rb_define_method(rb_cHID_DeviceInfo, "interface_number", rhid_deviceinfo_interface_number, 0);
 
-  rb_define_module_function(rb_cHID, "open", rhid_open, 3);
+  rb_define_module_function(rb_cHID, "open", rhid_open, -1);
   rb_define_module_function(rb_cHID, "open_path", rhid_open_path, 1);
 
   rb_define_method(rb_cHID_Device, "write", rhid_device_write, 1);
