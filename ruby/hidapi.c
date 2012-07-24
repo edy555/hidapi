@@ -142,14 +142,39 @@ rhid_enumerate(int argc, VALUE *argv)
   if (product_id != Qnil)
     pid = NUM2INT(product_id);
 
-  struct hid_device_info *h;
+  struct hid_device_info *devs;
   
-  h = hid_enumerate(vid, pid);
-  if (h == NULL) {
+  devs = hid_enumerate(vid, pid);
+  if (devs == NULL) {
     rb_sys_fail("hid_enumerate");
   }
 
-  return rhid_deviceinfo_new(h);
+#if 0
+  return rhid_deviceinfo_new(devs);
+#else
+  char mbs[MAX_STR];
+  VALUE ary = rb_ary_new();
+  struct hid_device_info *di;
+  for (di = devs; di != NULL; di = di->next) {
+    VALUE h = rb_hash_new();
+    rb_hash_aset(h, ID2SYM(rb_intern("path")), rb_str_new2(di->path));
+    rb_hash_aset(h, ID2SYM(rb_intern("vendor_id")), INT2NUM(di->vendor_id));
+    rb_hash_aset(h, ID2SYM(rb_intern("product_id")), INT2NUM(di->product_id));
+    wcstombs(mbs, di->serial_number, MAX_STR);
+    rb_hash_aset(h, ID2SYM(rb_intern("serial_number")), rb_str_new2(mbs));
+    rb_hash_aset(h, ID2SYM(rb_intern("release_number")), INT2NUM(di->release_number));
+    wcstombs(mbs, di->manufacturer_string, MAX_STR);
+    rb_hash_aset(h, ID2SYM(rb_intern("manufacturer_string")), rb_str_new2(mbs));
+    wcstombs(mbs, di->product_string, MAX_STR);
+    rb_hash_aset(h, ID2SYM(rb_intern("product_string")), rb_str_new2(mbs));
+    rb_hash_aset(h, ID2SYM(rb_intern("usage_page")), INT2NUM(di->usage_page));
+    rb_hash_aset(h, ID2SYM(rb_intern("usage")), INT2NUM(di->usage));
+    rb_hash_aset(h, ID2SYM(rb_intern("interface_number")), INT2NUM(di->interface_number));
+    rb_ary_push(ary, h);
+  }
+  hid_free_enumeration(devs);
+  return ary;
+#endif
 }
 
 /* HID#free_enumeration */
