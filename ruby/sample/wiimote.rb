@@ -1,13 +1,12 @@
 #!/usr/bin/env ruby
-
-require 'hid'
+require 'hidapi'
 
 class Wiimote
   attr_reader :a, :b, :up, :down, :left, :right, :plus, :minus, :one, :two, :home
   attr_reader :xaxis, :yaxis, :zaxis
 
   def initialize
-    @dev = HID::open(0x057e, 0x0306, nil)
+    @dev = HID::open 0x057e, 0x0306
     @xaxis = 0
     @yaxis = 0
     @zaxis = 0
@@ -61,8 +60,7 @@ class Wiimote
   # http://www.wiili.org/index.php/Wiimote#Buttons
   #
   def update
-    data = "xxxxxxxx"
-    @dev.read data
+    data = @dev.read 8
     break if data.empty?
 
     next unless ( data[0] & 0x30 ) == 0x30

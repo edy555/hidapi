@@ -211,7 +211,7 @@ rhid_open(int argc, VALUE *argv)
   vid = NUM2INT(vendor_id);
   pid = NUM2INT(product_id);
 
-  if (n == 3) {
+  if (n == 3 && !NIL_P(vserial_number)) {
     size_t len;
     wchar_t *ws;
     StringValue(vserial_number);
@@ -267,16 +267,18 @@ static VALUE
 rhid_device_read(VALUE v, VALUE vdata)
 {
   hid_device *device = get_hid_device(v);
-  char *data;
-  int length;
+  VALUE buf;
   int ret;
-  StringValue(vdata);
-  rb_str_modify(vdata);
-  data = RSTRING_PTR(vdata);
-  length = RSTRING_LEN(vdata);
-  ret = hid_read(device, data, length);
+  if (TYPE(vdata) == T_STRING) {
+    buf = vdata;
+  } else {
+    buf = rb_str_new(NULL, NUM2INT(vdata));
+  }
+  StringValue(buf);
+  rb_str_modify(buf);
+  ret = hid_read(device, RSTRING_PTR(buf), RSTRING_LEN(buf));
   check_hid_error("hid_read", ret);
-  return INT2NUM(ret);
+  return buf;
 }
 
 /* HID::Device#set_nonblocking */
@@ -314,16 +316,18 @@ static VALUE
 rhid_device_get_feature_report(VALUE v, VALUE vdata)
 {
   hid_device *device = get_hid_device(v);
-  char *data;
-  int length;
+  VALUE buf;
   int ret;
-  StringValue(vdata);
-  rb_str_modify(vdata);
-  data = RSTRING_PTR(vdata);
-  length = RSTRING_LEN(vdata);
-  ret = hid_get_feature_report(device, data, length);
+  if (TYPE(vdata) == T_STRING) {
+    buf = vdata;
+  } else {
+    buf = rb_str_new(NULL, NUM2INT(vdata));
+  }
+  StringValue(buf);
+  rb_str_modify(buf);
+  ret = hid_get_feature_report(device, RSTRING_PTR(buf), RSTRING_LEN(buf));
   check_hid_error("hid_get_feature_report", ret);
-  return INT2NUM(ret);
+  return buf;
 }
 
 
