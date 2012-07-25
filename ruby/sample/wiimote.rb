@@ -5,8 +5,8 @@ class Wiimote
   attr_reader :a, :b, :up, :down, :left, :right, :plus, :minus, :one, :two, :home
   attr_reader :xaxis, :yaxis, :zaxis
 
-  def initialize
-    @dev = HID::open 0x057e, 0x0306
+  def initialize(vid = 0x057e, pid = 0x0306)
+    @dev = HID::open(vid, pid)
     @xaxis = 0
     @yaxis = 0
     @zaxis = 0
@@ -61,9 +61,9 @@ class Wiimote
   #
   def update
     data = @dev.read 8
-    break if data.empty?
+    return if data.empty?
 
-    next unless ( data[0] & 0x30 ) == 0x30
+    return unless ( data[0] & 0x30 ) == 0x30
 
     @left  = ( data[1] & 0x01 ) == 0x01
     @right = ( data[1] & 0x02 ) == 0x02
@@ -78,7 +78,7 @@ class Wiimote
     @minus = ( data[2] & 0x10 ) == 0x10
     @home  = ( data[2] & 0x80 ) == 0x80
 
-    next unless ( data[0] & 0x31 ) == 0x31
+    return unless ( data[0] & 0x31 ) == 0x31
 
     @xaxis = data[3]
     @yaxis = data[4]
